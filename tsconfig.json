@@ -16,20 +16,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-
-    "declaration": true,
-    "rootDirs": ["./src"],
-    "outDir": "./dist",
-    "downlevelIteration": true,
-    "typeRoots": [
-      "node_modules/@types",
-      ".typings"
-    ],
-    "baseUrl": ".",
-    "noErrorTruncation": true,
   },
   "exclude": ["dist"],
-  "include": [
-    "src/**/*.ts"
-  ]
 }
