@@ -1,1 +1,10 @@
+node_modules/
+target/
+
+# Editors
+.idea/
+
+# Mac
+.DS_Store
+
 coverage

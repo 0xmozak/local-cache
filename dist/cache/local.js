@@ -27,8 +27,8 @@ exports.getLocalArchiveFolder = exports.getLocalCacheEntry = void 0;
 const path = __importStar(require("path"));
 const io_util_1 = require("@actions/io/lib/io-util");
 const tar_1 = require("./tar");
-async function getLocalCacheEntry(keys, compressionMethod) {
-    const cacheFileName = await (0, tar_1.getCacheFileName)(compressionMethod);
+async function getLocalCacheEntry(keys) {
+    const cacheFileName = await (0, tar_1.getCacheFileName)();
     const result = await keys.reduce(async (asyncMemo, key) => {
         const memo = await asyncMemo;
         if (memo)

@@ -17,4 +17,3 @@ export declare const SocketTimeout = 5000;
 export declare const GnuTarPathOnWindows: string;
 export declare const SystemTarPathOnWindows: string;
 export declare const TarFilename = "cache.tar";
-export declare const ManifestFilename = "manifest.txt";

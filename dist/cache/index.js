@@ -23,14 +23,24 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveCache = exports.restoreCache = exports.isFeatureAvailable = void 0;
-const path = __importStar(require("path"));
+exports.saveCache = exports.restoreCache = exports.isFeatureAvailable = exports.ReserveCacheError = exports.ValidationError = void 0;
 const core = __importStar(require("@actions/core"));
 const io = __importStar(require("@actions/io"));
 const utils = __importStar(require("./cacheUtils"));
 const tar_1 = require("./tar");
 const errors_1 = require("./errors");
+Object.defineProperty(exports, "ValidationError", { enumerable: true, get: function () { return errors_1.ValidationError; } });
+Object.defineProperty(exports, "ReserveCacheError", { enumerable: true, get: function () { return errors_1.ReserveCacheError; } });
 const local_1 = require("./local");
+/**
+ * isFeatureAvailable to check the presence of Actions cache service
+ *
+ * @returns boolean return true if Actions cache service feature is available, otherwise false
+ */
+function isFeatureAvailable() {
+    return true;
+}
+exports.isFeatureAvailable = isFeatureAvailable;
 function checkPaths(paths) {
     if (!paths || paths.length === 0) {
         throw new errors_1.ValidationError('Path Validation Error: At least one directory or file path is required');
@@ -46,15 +56,6 @@ function checkKey(key) {
     }
 }
 /**
- * isFeatureAvailable to check the presence of Actions cache service
- *
- * @returns boolean return true if Actions cache service feature is available, otherwise false
- */
-function isFeatureAvailable() {
-    return true;
-}
-exports.isFeatureAvailable = isFeatureAvailable;
-/**
  * Restores cache from keys
  *
  * @param paths a list of file paths to restore from the cache
@@ -64,7 +65,7 @@ exports.isFeatureAvailable = isFeatureAvailable;
  * @param enableCrossOsArchive an optional boolean enabled to restore on windows any cache created on any platform
  * @returns string returns the key for the cache hit, otherwise returns undefined
  */
-async function restoreCache(paths, primaryKey, restoreKeys, lookupOnly) {
+async function restoreCache(paths, primaryKey, restoreKeys, _options, _enableCrossOsArchive) {
     checkPaths(paths);
     // eslint-disable-next-line no-param-reassign
     restoreKeys = restoreKeys || [];
@@ -78,26 +79,20 @@ async function restoreCache(paths, primaryKey, restoreKeys, lookupOnly) {
     for (const key of keys) {
         checkKey(key);
     }
-    const compressionMethod = await utils.getCompressionMethod();
-    let archivePath = '';
     try {
         // path are needed to compute version
-        const cacheEntry = await (0, local_1.getLocalCacheEntry)(keys, compressionMethod);
+        const cacheEntry = await (0, local_1.getLocalCacheEntry)(keys);
         if (!cacheEntry?.archiveLocation) {
             // Cache not found
             return undefined;
         }
-        if (lookupOnly) {
-            core.info('Lookup only - skipping download');
-            return cacheEntry.cacheKey;
-        }
-        archivePath = cacheEntry.archiveLocation;
+        let archivePath = utils.posixPath(cacheEntry.archiveLocation);
         if (core.isDebug()) {
-            await (0, tar_1.listTar)(archivePath, compressionMethod);
+            await (0, tar_1.listTar)(archivePath);
         }
         const archiveFileSize = utils.getArchiveFileSizeInBytes(archivePath);
         core.info(`Cache Size: ~${Math.round(archiveFileSize / (1024 * 1024))} MB (${archiveFileSize} B)`);
-        await (0, tar_1.extractTar)(archivePath, compressionMethod);
+        await (0, tar_1.extractTar)(archivePath);
         core.info('Cache restored successfully');
         return cacheEntry.cacheKey;
     }
@@ -126,7 +121,6 @@ exports.restoreCache = restoreCache;
 async function saveCache(paths, key) {
     checkPaths(paths);
     checkKey(key);
-    const compressionMethod = await utils.getCompressionMethod();
     const cachePaths = await utils.resolvePaths(paths);
     core.debug('Cache Paths:');
     core.debug(`${JSON.stringify(cachePaths)}`);
@@ -137,12 +131,13 @@ async function saveCache(paths, key) {
     }
     const archiveFolder = await (0, local_1.getLocalArchiveFolder)(key);
     await io.mkdirP(archiveFolder);
-    const archivePath = path.join(archiveFolder, utils.getCacheFileName(compressionMethod));
+    const posixArchiveFolder = utils.posixPath(archiveFolder);
+    const archivePath = utils.posixJoin(posixArchiveFolder, utils.posixFile(await utils.getCacheFileName()));
     core.debug(`Archive Path: ${archivePath}`);
     try {
-        await (0, tar_1.createTar)(archiveFolder, cachePaths, compressionMethod);
+        await (0, tar_1.createTar)(posixArchiveFolder, cachePaths);
         if (core.isDebug()) {
-            await (0, tar_1.listTar)(archivePath, compressionMethod);
+            await (0, tar_1.listTar)(archivePath);
         }
         const fileSizeLimit = 10 * 1024 * 1024 * 1024; // 10GB per repo limit
         const archiveFileSize = utils.getArchiveFileSizeInBytes(archivePath);
@@ -164,5 +159,6 @@ async function saveCache(paths, key) {
             core.warning(`Failed to save: ${typedError.message}`);
         }
     }
+    return -1;
 }
 exports.saveCache = saveCache;

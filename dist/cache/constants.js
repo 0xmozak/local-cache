@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ManifestFilename = exports.TarFilename = exports.SystemTarPathOnWindows = exports.GnuTarPathOnWindows = exports.SocketTimeout = exports.DefaultRetryDelay = exports.DefaultRetryAttempts = exports.ArchiveToolType = exports.CompressionMethod = exports.CacheFilename = void 0;
+exports.TarFilename = exports.SystemTarPathOnWindows = exports.GnuTarPathOnWindows = exports.SocketTimeout = exports.DefaultRetryDelay = exports.DefaultRetryAttempts = exports.ArchiveToolType = exports.CompressionMethod = exports.CacheFilename = void 0;
 var CacheFilename;
 (function (CacheFilename) {
     CacheFilename["Gzip"] = "cache.tgz";
@@ -32,4 +32,3 @@ exports.GnuTarPathOnWindows = `${process.env.PROGRAMFILES}\\Git\\usr\\bin\\tar.e
 // The default path of BSDtar on hosted Windows runners
 exports.SystemTarPathOnWindows = `${process.env.SYSTEMDRIVE}\\Windows\\System32\\tar.exe`;
 exports.TarFilename = 'cache.tar';
-exports.ManifestFilename = 'manifest.txt';

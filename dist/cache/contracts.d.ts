@@ -30,3 +30,7 @@ export interface ArchiveTool {
     path: string;
     type: string;
 }
+export interface Exec {
+    program: string;
+    args: string[];
+}
