@@ -1,64 +1,36 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.randomName = exports.posixJoin = exports.posixPath = exports.posixFile = exports.isGhes = exports.assertDefined = exports.getGnuTarPathOnWindows = exports.unlinkFile = exports.resolvePaths = exports.getArchiveFileSizeInBytes = exports.getCacheFileName = exports.getCompressionMethod = exports.lazyInit = void 0;
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
-const util = __importStar(require("util"));
-const core = __importStar(require("@actions/core"));
-const exec = __importStar(require("@actions/exec"));
-const glob = __importStar(require("@actions/glob"));
-const io = __importStar(require("@actions/io"));
-const semver = __importStar(require("semver"));
-const crypto = __importStar(require("crypto"));
-const constants_1 = require("./constants");
-function lazyInit(fn) {
+import * as fs from 'fs';
+import * as path from 'path';
+import * as util from 'util';
+import * as core from '@actions/core';
+import * as exec from '@actions/exec';
+import * as glob from '@actions/glob';
+import * as io from '@actions/io';
+import * as semver from 'semver';
+import * as crypto from 'crypto';
+import { CacheFilename, CompressionMethod, GnuTarPathOnWindows } from './constants';
+export function lazyInit(fn) {
     let prom = undefined;
     return () => prom = (prom || fn());
 }
-exports.lazyInit = lazyInit;
 // Use zstandard if possible to maximize cache performance
-exports.getCompressionMethod = lazyInit(async () => {
+export const getCompressionMethod = lazyInit(async () => {
     const versionOutput = await getVersion('zstd', ['--quiet']);
     const version = semver.clean(versionOutput);
     core.debug(`zstd version: ${version}`);
     if (versionOutput === '') {
-        return constants_1.CompressionMethod.Gzip;
+        return CompressionMethod.Gzip;
     }
-    return constants_1.CompressionMethod.ZstdWithoutLong;
+    return CompressionMethod.ZstdWithoutLong;
 });
-exports.getCacheFileName = lazyInit(async () => {
-    return await (0, exports.getCompressionMethod)() === constants_1.CompressionMethod.Gzip
-        ? constants_1.CacheFilename.Gzip
-        : constants_1.CacheFilename.Zstd;
+export const getCacheFileName = lazyInit(async () => {
+    return await getCompressionMethod() === CompressionMethod.Gzip
+        ? CacheFilename.Gzip
+        : CacheFilename.Zstd;
 });
-function getArchiveFileSizeInBytes(filePath) {
+export function getArchiveFileSizeInBytes(filePath) {
     return fs.statSync(filePath).size;
 }
-exports.getArchiveFileSizeInBytes = getArchiveFileSizeInBytes;
-async function resolvePaths(patterns) {
+export async function resolvePaths(patterns) {
     const paths = [];
     const workspace = process.env.GITHUB_WORKSPACE ?? process.cwd();
     const globber = await glob.create(patterns.join('\n'), {
@@ -79,11 +51,9 @@ async function resolvePaths(patterns) {
     }
     return paths;
 }
-exports.resolvePaths = resolvePaths;
-async function unlinkFile(filePath) {
+export async function unlinkFile(filePath) {
     return util.promisify(fs.unlink)(filePath);
 }
-exports.unlinkFile = unlinkFile;
 async function getVersion(app, additionalArgs = []) {
     let versionOutput = '';
     additionalArgs.push('--version');
@@ -111,29 +81,27 @@ async function getVersion(app, additionalArgs = []) {
     core.debug(versionOutput);
     return versionOutput;
 }
-exports.getGnuTarPathOnWindows = lazyInit(async () => {
-    if (fs.existsSync(constants_1.GnuTarPathOnWindows)) {
-        return constants_1.GnuTarPathOnWindows;
+export const getGnuTarPathOnWindows = lazyInit(async () => {
+    if (fs.existsSync(GnuTarPathOnWindows)) {
+        return GnuTarPathOnWindows;
     }
     const versionOutput = await getVersion('tar');
     return versionOutput.toLowerCase().includes('gnu tar') ? io.which('tar') : '';
 });
-function assertDefined(name, value) {
+export function assertDefined(name, value) {
     if (value === undefined) {
         throw Error(`Expected ${name} but value was undefiend`);
     }
     return value;
 }
-exports.assertDefined = assertDefined;
-exports.isGhes = lazyInit(async () => {
+export const isGhes = lazyInit(async () => {
     const ghUrl = new URL(process.env.GITHUB_SERVER_URL || 'https://github.com');
     return ghUrl.hostname.toUpperCase() !== 'GITHUB.COM';
 });
-function posixFile(filename) {
+export function posixFile(filename) {
     return filename;
 }
-exports.posixFile = posixFile;
-function posixPath(windowsPath) {
+export function posixPath(windowsPath) {
     return windowsPath
         // handle the edge-case of Window's long file names
         // See: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#short-vs-long-names
@@ -144,13 +112,10 @@ function posixPath(windowsPath) {
         // and prevents accidental errors caused by manually doing path1+path2
         .replace(/\/\/+/g, '\/');
 }
-exports.posixPath = posixPath;
-function posixJoin(...paths) {
+export function posixJoin(...paths) {
     return path.posix.join(...paths);
 }
-exports.posixJoin = posixJoin;
-function randomName() {
+export function randomName() {
     return Math.floor(new Date().getTime() / 1000).toString(36)
         + crypto.randomBytes(12).toString('base64url');
 }
-exports.randomName = randomName;

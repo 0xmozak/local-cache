@@ -21,10 +21,10 @@ class StateProviderBase implements IStateProvider {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function, class-methods-use-this
-  setState = (key: string, value: string) => {}
+  setState = (_key: string, _value: string) => {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, class-methods-use-this
-  getState = (key: string) => ''
+  getState = (_key: string) => ''
 }
 
 export class StateProvider extends StateProviderBase {
@@ -44,5 +44,5 @@ export class NullStateProvider extends StateProviderBase {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, class-methods-use-this
-  getState = (key: string) => ''
+  getState = (_key: string) => ''
 }

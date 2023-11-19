@@ -6,8 +6,8 @@ export interface IStateProvider {
 }
 declare class StateProviderBase implements IStateProvider {
     getCacheState(): string | undefined;
-    setState: (key: string, value: string) => void;
-    getState: (key: string) => string;
+    setState: (_key: string, _value: string) => void;
+    getState: (_key: string) => string;
 }
 export declare class StateProvider extends StateProviderBase {
     setState: typeof core.saveState;
@@ -16,6 +16,6 @@ export declare class StateProvider extends StateProviderBase {
 export declare class NullStateProvider extends StateProviderBase {
     stateToOutputMap: Map<string, string>;
     setState: (key: string, value: string) => void;
-    getState: (key: string) => string;
+    getState: (_key: string) => string;
 }
 export {};

@@ -4,7 +4,6 @@ import * as utils from './cacheUtils'
 import { createTar, extractTar, listTar } from './tar'
 import { ValidationError, ReserveCacheError } from './errors'
 import { getLocalCacheEntry, getLocalArchiveFolder } from './local'
-import { DownloadOptions } from '@actions/cache/lib/options'
 
 export { ValidationError, ReserveCacheError }
 
@@ -54,8 +53,7 @@ export async function restoreCache(
     paths: string[],
     primaryKey: string,
     restoreKeys?: string[],
-    _options?: DownloadOptions,
-    _enableCrossOsArchive?: boolean
+    lookupOnly?: boolean,
   ): Promise<string | undefined> {
     checkPaths(paths)
   
@@ -82,6 +80,11 @@ export async function restoreCache(
       if (!cacheEntry?.archiveLocation) {
         // Cache not found
         return undefined
+      }
+
+      if (lookupOnly) {
+        core.info('Lookup only - skipping download')
+        return cacheEntry.cacheKey
       }
   
       let archivePath = utils.posixPath(cacheEntry.archiveLocation)

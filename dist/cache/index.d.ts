@@ -1,5 +1,4 @@
 import { ValidationError, ReserveCacheError } from './errors';
-import { DownloadOptions } from '@actions/cache/lib/options';
 export { ValidationError, ReserveCacheError };
 /**
  * isFeatureAvailable to check the presence of Actions cache service
@@ -17,7 +16,7 @@ export declare function isFeatureAvailable(): boolean;
  * @param enableCrossOsArchive an optional boolean enabled to restore on windows any cache created on any platform
  * @returns string returns the key for the cache hit, otherwise returns undefined
  */
-export declare function restoreCache(paths: string[], primaryKey: string, restoreKeys?: string[], _options?: DownloadOptions, _enableCrossOsArchive?: boolean): Promise<string | undefined>;
+export declare function restoreCache(paths: string[], primaryKey: string, restoreKeys?: string[], lookupOnly?: boolean): Promise<string | undefined>;
 /**
  * Saves a list of files with the specified key
  *

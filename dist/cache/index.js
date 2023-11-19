@@ -1,58 +1,30 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveCache = exports.restoreCache = exports.isFeatureAvailable = exports.ReserveCacheError = exports.ValidationError = void 0;
-const core = __importStar(require("@actions/core"));
-const io = __importStar(require("@actions/io"));
-const utils = __importStar(require("./cacheUtils"));
-const tar_1 = require("./tar");
-const errors_1 = require("./errors");
-Object.defineProperty(exports, "ValidationError", { enumerable: true, get: function () { return errors_1.ValidationError; } });
-Object.defineProperty(exports, "ReserveCacheError", { enumerable: true, get: function () { return errors_1.ReserveCacheError; } });
-const local_1 = require("./local");
+import * as core from '@actions/core';
+import * as io from '@actions/io';
+import * as utils from './cacheUtils';
+import { createTar, extractTar, listTar } from './tar';
+import { ValidationError, ReserveCacheError } from './errors';
+import { getLocalCacheEntry, getLocalArchiveFolder } from './local';
+export { ValidationError, ReserveCacheError };
 /**
  * isFeatureAvailable to check the presence of Actions cache service
  *
  * @returns boolean return true if Actions cache service feature is available, otherwise false
  */
-function isFeatureAvailable() {
+export function isFeatureAvailable() {
     return true;
 }
-exports.isFeatureAvailable = isFeatureAvailable;
 function checkPaths(paths) {
     if (!paths || paths.length === 0) {
-        throw new errors_1.ValidationError('Path Validation Error: At least one directory or file path is required');
+        throw new ValidationError('Path Validation Error: At least one directory or file path is required');
     }
 }
 function checkKey(key) {
     if (key.length > 512) {
-        throw new errors_1.ValidationError(`Key Validation Error: ${key} cannot be larger than 512 characters.`);
+        throw new ValidationError(`Key Validation Error: ${key} cannot be larger than 512 characters.`);
     }
     const regex = /^[^,]*$/;
     if (!regex.test(key)) {
-        throw new errors_1.ValidationError(`Key Validation Error: ${key} cannot contain commas.`);
+        throw new ValidationError(`Key Validation Error: ${key} cannot contain commas.`);
     }
 }
 /**
@@ -65,7 +37,7 @@ function checkKey(key) {
  * @param enableCrossOsArchive an optional boolean enabled to restore on windows any cache created on any platform
  * @returns string returns the key for the cache hit, otherwise returns undefined
  */
-async function restoreCache(paths, primaryKey, restoreKeys, _options, _enableCrossOsArchive) {
+export async function restoreCache(paths, primaryKey, restoreKeys, lookupOnly) {
     checkPaths(paths);
     // eslint-disable-next-line no-param-reassign
     restoreKeys = restoreKeys || [];
@@ -73,7 +45,7 @@ async function restoreCache(paths, primaryKey, restoreKeys, _options, _enableCro
     core.debug('Resolved Keys:');
     core.debug(JSON.stringify(keys));
     if (keys.length > 10) {
-        throw new errors_1.ValidationError('Key Validation Error: Keys are limited to a maximum of 10.');
+        throw new ValidationError('Key Validation Error: Keys are limited to a maximum of 10.');
     }
     // eslint-disable-next-line no-restricted-syntax
     for (const key of keys) {
@@ -81,24 +53,28 @@ async function restoreCache(paths, primaryKey, restoreKeys, _options, _enableCro
     }
     try {
         // path are needed to compute version
-        const cacheEntry = await (0, local_1.getLocalCacheEntry)(keys);
+        const cacheEntry = await getLocalCacheEntry(keys);
         if (!cacheEntry?.archiveLocation) {
             // Cache not found
             return undefined;
         }
+        if (lookupOnly) {
+            core.info('Lookup only - skipping download');
+            return cacheEntry.cacheKey;
+        }
         let archivePath = utils.posixPath(cacheEntry.archiveLocation);
         if (core.isDebug()) {
-            await (0, tar_1.listTar)(archivePath);
+            await listTar(archivePath);
         }
         const archiveFileSize = utils.getArchiveFileSizeInBytes(archivePath);
         core.info(`Cache Size: ~${Math.round(archiveFileSize / (1024 * 1024))} MB (${archiveFileSize} B)`);
-        await (0, tar_1.extractTar)(archivePath);
+        await extractTar(archivePath);
         core.info('Cache restored successfully');
         return cacheEntry.cacheKey;
     }
     catch (error) {
         const typedError = error;
-        if (typedError.name === errors_1.ValidationError.name) {
+        if (typedError.name === ValidationError.name) {
             throw error;
         }
         else {
@@ -108,7 +84,6 @@ async function restoreCache(paths, primaryKey, restoreKeys, _options, _enableCro
     }
     return undefined;
 }
-exports.restoreCache = restoreCache;
 /**
  * Saves a list of files with the specified key
  *
@@ -118,7 +93,7 @@ exports.restoreCache = restoreCache;
  * @param options cache upload options
  * @returns number returns cacheId if the cache was saved successfully and throws an error if save fails
  */
-async function saveCache(paths, key) {
+export async function saveCache(paths, key) {
     checkPaths(paths);
     checkKey(key);
     const cachePaths = await utils.resolvePaths(paths);
@@ -129,15 +104,15 @@ async function saveCache(paths, key) {
         // eslint-disable-next-line max-len
         'Path Validation Error: Path(s) specified in the action for caching do(es) not exist, hence no cache is being saved.');
     }
-    const archiveFolder = await (0, local_1.getLocalArchiveFolder)(key);
+    const archiveFolder = await getLocalArchiveFolder(key);
     await io.mkdirP(archiveFolder);
     const posixArchiveFolder = utils.posixPath(archiveFolder);
     const archivePath = utils.posixJoin(posixArchiveFolder, utils.posixFile(await utils.getCacheFileName()));
     core.debug(`Archive Path: ${archivePath}`);
     try {
-        await (0, tar_1.createTar)(posixArchiveFolder, cachePaths);
+        await createTar(posixArchiveFolder, cachePaths);
         if (core.isDebug()) {
-            await (0, tar_1.listTar)(archivePath);
+            await listTar(archivePath);
         }
         const fileSizeLimit = 10 * 1024 * 1024 * 1024; // 10GB per repo limit
         const archiveFileSize = utils.getArchiveFileSizeInBytes(archivePath);
@@ -149,10 +124,10 @@ async function saveCache(paths, key) {
     }
     catch (error) {
         const typedError = error;
-        if (typedError.name === errors_1.ValidationError.name) {
+        if (typedError.name === ValidationError.name) {
             throw error;
         }
-        else if (typedError.name === errors_1.ReserveCacheError.name) {
+        else if (typedError.name === ReserveCacheError.name) {
             core.info(`Failed to save: ${typedError.message}`);
         }
         else {
@@ -161,4 +136,3 @@ async function saveCache(paths, key) {
     }
     return -1;
 }
-exports.saveCache = saveCache;
