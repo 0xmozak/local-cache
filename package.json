@@ -5,7 +5,7 @@
   "description": "Github Action to provide caching data by placing a tarball on the local filesystem",
   "main": "dist/main/index.ts",
   "scripts": {
-    "prepare": "ncc build --target es2020 -o dist/restore src/restore.ts && ncc build --target es2020 -o dist/save src/save.ts && linefix dist"
+    "prepare": "ncc build --target es2020 -o dist/restore src/restore.ts && ncc build --target es2020 -o dist/restoreOnly src/restoreOnly.ts && ncc build --target es2020 -o dist/save src/save.ts && ncc build --target es2020 -o dist/saveOnly src/saveOnly.ts && linefix dist"
   },
   "repository": {
     "type": "git",
